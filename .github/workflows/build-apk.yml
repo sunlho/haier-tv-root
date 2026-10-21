@@ -14,19 +14,32 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       RELEASE_TAG: ${{ inputs.release_tag }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Install Android SDK packages
-        run: sdkmanager 'platforms;android-34' 'build-tools;35.0.0'
+      - name: Prepare Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          [[ -n "$sdk" ]] || { echo 'Android SDK is missing from the runner'; exit 1; }
+          # Ubuntu 24.04 includes these packages; install only when necessary.
+          if [[ ! -f "$sdk/platforms/android-34/android.jar" ||
+                ! -x "$sdk/build-tools/35.0.0/apksigner" ||
+                ! -x "$sdk/platform-tools/adb" ]]; then
+            manager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+            [[ -x "$manager" ]] || { echo 'sdkmanager is missing from the runner'; exit 1; }
+            "$manager" 'platform-tools' 'platforms;android-34' 'build-tools;35.0.0'
+          fi
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk" >> "$GITHUB_ENV"
+      - uses: gradle/actions/setup-gradle@v5
       - name: Validate release tag and signing secrets
         if: inputs.release_tag != ''
         env:
@@ -63,16 +76,16 @@ jobs:
           grep -q 'Verified using v1 scheme (JAR signing): true' "$RUNNER_TEMP/signature.txt"
           python3 tools/verify-apk.py "$apk"
           mkdir -p dist
-          cp "$apk" "dist/haier-root-$variant.apk"
+          cp "$apk" "dist/haier-tv-root-$variant.apk"
           (cd dist && sha256sum *.apk > SHA256SUMS)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: haier-root-apk-${{ github.run_number }}
+          name: haier-tv-root-apk-${{ github.run_number }}
           path: dist/
           if-no-files-found: error
       - name: Upload Lint reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lint-reports-${{ github.run_number }}
           path: app/build/reports/lint-results-*
@@ -84,13 +97,13 @@ jobs:
   publish:
     if: inputs.release_tag != ''
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
-          name: haier-root-apk-${{ github.run_number }}
+          name: haier-tv-root-apk-${{ github.run_number }}
           path: dist
       - name: Publish release for the selected commit
         env:

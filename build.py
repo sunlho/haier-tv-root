@@ -151,7 +151,7 @@ def main():
                 archive.write(path, path.name)
         aligned = work / 'aligned.apk'
         run([tools / ('zipalign' + EXE), '-f', '4', unsigned, aligned])
-        apk = build / 'haier-root.apk'
+        apk = build / 'haier-tv-root.apk'
         run([java, '-jar', tools / 'lib/apksigner.jar', 'sign', '--ks', key, '--ks-key-alias', alias,
              '--ks-pass', 'env:ANDROID_KEYSTORE_PASSWORD', '--key-pass', 'env:ANDROID_KEY_PASSWORD',
              '--min-sdk-version', minimum, '--v1-signing-enabled', 'true', '--v2-signing-enabled', 'true',

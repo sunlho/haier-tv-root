@@ -7,7 +7,7 @@
 ## 下载与安装（推荐）
 
 1. 打开本仓库的 [Releases 页面](../../releases)，选择最新正式版本。
-2. 在 **Assets** 中下载 `.apk` 安装包，例如 `haier-root-release.apk`。`Source code` 是源码压缩包，不能直接安装。
+2. 在 **Assets** 中下载 `.apk` 安装包，例如 `haier-tv-root-release.apk`。`Source code` 是源码压缩包，不能直接安装。
 3. 将 APK 安装到电视，在应用列表中打开「海尔TV Root」。可使用电视支持的 U 盘、文件管理器安装方式，或使用下面的 ADB 命令。
 
 使用正式 APK 不需要 Python、JDK、Gradle 或 Android Studio。
@@ -18,7 +18,7 @@
 
 ```sh
 adb connect TV_IP:5555
-adb -s TV_IP:5555 install -r haier-root-release.apk
+adb -s TV_IP:5555 install -r haier-tv-root-release.apk
 adb -s TV_IP:5555 shell am start -n io.github.sunlho.haierroot/.MainActivity
 ```
 
@@ -98,10 +98,10 @@ python build.py --jdk "D:/Java/jdk-17" --sdk "D:/Android/Sdk"
 
 可用 `--build-tools` 指定 Build Tools 目录，`--android-jar` 指定编译平台。默认复用本机已安装的最早可用平台（最低 API 19）及最新稳定 Build Tools。构建参数、包名和版本从 `app/build.gradle` 读取，无需运行 Gradle。
 
-输出 **`build/haier-root.apk`** 和 `build/SHA256SUMS`，自动校验 Android 4.4 所需的 v1 签名及厂商类隔离。安装命令：
+输出 **`build/haier-tv-root.apk`** 和 `build/SHA256SUMS`，自动校验 Android 4.4 所需的 v1 签名及厂商类隔离。安装命令：
 
 ```sh
-adb -s TV_IP:5555 install -r build/haier-root.apk
+adb -s TV_IP:5555 install -r build/haier-tv-root.apk
 ```
 
 签名优先复用已有 `~/.android/debug.keystore`；不存在时创建并保留 `.signing/debug.keystore`。更新时保留相同密钥。自定义发布签名使用下文的四个 `ANDROID_KEYSTORE_FILE` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` 环境变量。密钥不会提交到 Git。
@@ -146,7 +146,7 @@ Linux / macOS：
 - `release_tag` 留空：构建 debug APK、运行 Android Lint 和接口兼容性单元测试、检查 v1 签名和厂商类隔离，然后上传 APK、SHA-256 和 Lint 报告。无需 Secrets。
 - 填写 `v1.2.0` 这类版本号：使用固定密钥构建签名 release APK，完成相同检查后上传产物，并为本次选择的提交创建 GitHub Release 和 tag。
 
-Artifact 中 APK 命名为 `haier-root-debug.apk` 或 `haier-root-release.apk`。从当前仓库的 Actions 页面下载构建产物需要登录 GitHub；公开仓库 Release 附件可直接下载。
+Artifact 中 APK 命名为 `haier-tv-root-debug.apk` 或 `haier-tv-root-release.apk`。从当前仓库的 Actions 页面下载构建产物需要登录 GitHub；公开仓库 Release 附件可直接下载。
 
 CI debug key 在不同运行间可能变化，适合测试；正式发布请使用固定 release key，确保后续版本能够覆盖安装。
 
