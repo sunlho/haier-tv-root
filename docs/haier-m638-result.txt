@@ -1,0 +1,28 @@
+Haier M638_HAIER ordinary-UID probe
+ADB before/after the probe: uid=2000(shell)
+
+RUN_ID: 1792517113265
+MODEL: M638_HAIER
+APP_UID: 10026
+APP_PID: 5487
+SYSTEM_APP: false
+SHARED_UID: null
+DIRECT_ID: Uid:	10026	10026	10026	10026
+DIRECT_ID: Gid:	10026	10026	10026	10026
+DIRECT_ID: CapEff:	0000000000000000
+DIRECT_ACCESS: java.io.FileNotFoundException: /proc/1/fdinfo/0: open failed: EACCES (Permission denied)
+COMMAND: CMD=21,/system/bin/sh /data/data/com.gathin.tvuidprobe/cache/vendor-probe.sh
+INTERFACE_RETURN: true
+PROOF_PATH: /data/data/com.gathin.tvuidprobe/cache/vendor-proof.txt
+VENDOR_OUTPUT:
+uid=0(root) gid=0(root)
+FILE_BEGIN
+pos:	0
+flags:	0400002
+PROBE_DONE
+ORDINARY_UID_ROOT_COMMAND_CONFIRMED: true
+RESULT: CONFIRMED
+APP_UID_AFTER: 10026
+PROBE_FINISHED
+
+Independent proof-file owner check: root:root

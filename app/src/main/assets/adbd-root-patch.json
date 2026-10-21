@@ -1,0 +1,32 @@
+{
+  "model": "M638_HAIER",
+  "original_sha256": "8380fb3109225cae45335ede3653686a38a2ea8ad0b7c77699876b975e42ef0f",
+  "patched_sha256": "d72e74a9a1694f84b51e78f5cc155a2281b85db8f17e0fd8e52e4cf32d2ab9f1",
+  "root_property": "service.adb.root",
+  "patches": [
+    {
+      "name": "startup_gate_branch",
+      "offset": 4632,
+      "before": "00242546",
+      "after": "20f01abf"
+    },
+    {
+      "name": "startup_property_gate",
+      "offset": 139344,
+      "before": "616462642063616e6e6f742072756e20617320726f6f7420696e2070726f64756374696f6e206275696c64730a000000",
+      "after": "07480ea90022e9f76efe9df83800312801d1dff71db900240025dff7d7b800bf80a0020000bf00bf00bf00bf00bf00bf"
+    },
+    {
+      "name": "allow_root_and_restart",
+      "offset": 31974,
+      "before": "1a4c1a481b4a01a97c4478447a4404f01ff801a8214608f076ef68b1164d18ac7d440fcd0fc40fcd0fc495e80f0007c418a864212380d3e7",
+      "after": "0a4c19e009f063fc18a902463846fcf71efb384608f016e84af22010c0f207000ff0b7fd002013f0fced4ca0020000bf00bf00bf00bf00bf"
+    },
+    {
+      "name": "root_success_restart_branch",
+      "offset": 32062,
+      "before": "c2e7",
+      "after": "d4e7"
+    }
+  ]
+}

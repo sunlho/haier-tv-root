@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">海尔TV Root</string>
+    <string name="verified_model">已在海尔 M638 验证 · 其他海尔型号请先检测环境</string>
+</resources>

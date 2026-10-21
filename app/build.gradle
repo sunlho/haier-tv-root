@@ -1,0 +1,76 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Optional release signing. Never commit a keystore or its passwords.
+def signingProperties = new Properties()
+def signingFile = rootProject.file('keystore.properties')
+if (signingFile.exists()) {
+    signingFile.withInputStream { signingProperties.load(it) }
+}
+def signingValue = { String property, String environment ->
+    System.getenv(environment) ?: signingProperties.getProperty(property)
+}
+def releaseKey = [
+    storeFile: signingValue('storeFile', 'ANDROID_KEYSTORE_FILE'),
+    storePassword: signingValue('storePassword', 'ANDROID_KEYSTORE_PASSWORD'),
+    keyAlias: signingValue('keyAlias', 'ANDROID_KEY_ALIAS'),
+    keyPassword: signingValue('keyPassword', 'ANDROID_KEY_PASSWORD')
+]
+if (releaseKey.values().any { it } && !releaseKey.values().every { it }) {
+    throw new GradleException('Release signing requires storeFile, storePassword, keyAlias and keyPassword.')
+}
+
+android {
+    namespace 'io.github.sunlho.haierroot'
+    compileSdk 34
+    buildToolsVersion '35.0.0'
+
+    defaultConfig {
+        applicationId 'io.github.sunlho.haierroot'
+        minSdk 19
+        // Preserve legacy vendor behavior while allowing newer Android sideloading.
+        targetSdk 25
+        versionCode 3
+        versionName '1.2.0'
+    }
+
+    signingConfigs {
+        debug {
+            enableV1Signing true
+        }
+        if (releaseKey.values().every { it }) {
+            release {
+                storeFile rootProject.file(releaseKey.storeFile)
+                storePassword releaseKey.storePassword
+                keyAlias releaseKey.keyAlias
+                keyPassword releaseKey.keyPassword
+                enableV1Signing true
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (releaseKey.values().every { it }) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
+        abortOnError true
+        // A deliberate firmware-specific target, rather than a Play Store app.
+        disable 'ExpiredTargetSdkVersion', 'OldTargetApi', 'MissingTvBanner', 'MissingApplicationIcon'
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}

@@ -1,0 +1,103 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional: v1.2.0 to sign and publish a Release; leave empty for debug APK'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK packages
+        run: sdkmanager 'platforms;android-34' 'build-tools;35.0.0'
+      - name: Validate release tag and signing secrets
+        if: inputs.release_tag != ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Use a tag such as v1.2.0'; exit 1; }
+          for secret in KEYSTORE_BASE64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            [[ -n "${!secret}" ]] || { echo "Missing signing secret: $secret"; exit 1; }
+          done
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          chmod 600 "$RUNNER_TEMP/release.jks"
+      - name: Build debug APK and run Lint
+        if: inputs.release_tag == ''
+        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:testDebugUnitTest
+      - name: Build signed release APK and run Lint
+        if: inputs.release_tag != ''
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon :app:assembleRelease :app:lintRelease :app:testReleaseUnitTest
+      - name: Verify and collect APK
+        run: |
+          set -euo pipefail
+          variant=debug
+          [[ -z "$RELEASE_TAG" ]] || variant=release
+          apk="app/build/outputs/apk/$variant/app-$variant.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --min-sdk-version 19 "$apk" | tee "$RUNNER_TEMP/signature.txt"
+          grep -q 'Verified using v1 scheme (JAR signing): true' "$RUNNER_TEMP/signature.txt"
+          python3 tools/verify-apk.py "$apk"
+          mkdir -p dist
+          cp "$apk" "dist/haier-root-$variant.apk"
+          (cd dist && sha256sum *.apk > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: haier-root-apk-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+      - name: Upload Lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports-${{ github.run_number }}
+          path: app/build/reports/lint-results-*
+          if-no-files-found: ignore
+      - name: Remove release key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+  publish:
+    if: inputs.release_tag != ''
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: haier-root-apk-${{ github.run_number }}
+          path: dist
+      - name: Publish release for the selected commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/*.apk dist/SHA256SUMS \
+            --target "$GITHUB_SHA" --title "海尔TV Root $RELEASE_TAG" \
+            --notes '已在海尔 M638 验证；其他型号请先在应用内检测环境。安装及恢复方法见仓库 README。'
